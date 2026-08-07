@@ -282,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               activeTab === 'map' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Maps
+            Info
           </button>
           <button
             onClick={() => setActiveTab('terrain')}
@@ -324,46 +324,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* TAB 0: CAMPAIGN & TURN TRACKER (MULTI-GAME MANAGEMENT) */}
         {activeTab === 'campaign' && (
           <div className="space-y-4">
-            {/* Active Game Room Header & Code */}
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <Shield className="w-3.5 h-3.5" />
-                  Active Game Room
-                </span>
-                <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                  {mapState.gameCode || 'ROOM-01'}
-                </span>
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  value={mapState.gameName || mapState.title}
-                  onChange={(e) =>
-                    setMapState((prev) => ({
-                      ...prev,
-                      gameName: e.target.value,
-                      title: e.target.value,
-                    }))
-                  }
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-100 focus:outline-none focus:border-emerald-500"
-                  placeholder="Campaign Title"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs">
-                <span className="text-[11px] text-slate-400">Play-by-Post Code:</span>
-                <button
-                  onClick={handleCopyGameCode}
-                  className="flex items-center gap-1 px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[11px] text-emerald-400 font-mono cursor-pointer transition"
-                >
-                  {codeCopiedToast ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                  <span>{codeCopiedToast ? 'Copied Code!' : mapState.gameCode || 'Copy Code'}</span>
-                </button>
-              </div>
-            </div>
-
             {/* Game Master Security & Anti-Cheat Lock */}
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
@@ -576,109 +536,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* TAB 1: MAP MANAGER */}
+        {/* TAB 1: INFO / CAMPAIGN BRIEFING */}
         {activeTab === 'map' && (
           <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-1.5">
-                Saved Maps ({savedMaps.length})
-              </label>
-              <select
-                value={currentMapId || ''}
-                onChange={(e) => {
-                  const found = savedMaps.find((m) => m.id === e.target.value);
-                  if (found) onSelectMapRecord(found);
-                }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
-              >
-                <option value="" disabled>
-                  -- Select a Map --
-                </option>
-                {savedMaps.map((m) => {
-                  const owner = m.state_json?.ownerName;
-                  return (
-                    <option key={m.id} value={m.id}>
-                      {m.name} {owner ? `[GM: ${owner}]` : ''} ({new Date(m.updated_at).toLocaleDateString()})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Action Buttons */}
-            <div>
-              <button
-                onClick={onNewMap}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Create New Map</span>
-              </button>
-            </div>
-
-            {/* Preset Scenarios */}
-            <div className="pt-2 border-t border-slate-800/80">
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-2">
-                Preset Scenarios
-              </label>
-              <div className="space-y-2">
-                <button
-                  onClick={() => onLoadPreset('crossroads')}
-                  className="w-full text-left p-2.5 bg-slate-950/60 hover:bg-slate-800 border border-slate-800/80 rounded-lg transition cursor-pointer group"
-                >
-                  <div className="font-semibold text-xs text-slate-200 group-hover:text-emerald-400">
-                    Operation Crossroads
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-                    Central village junction with roads and dense flank woods.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => onLoadPreset('mountain_pass')}
-                  className="w-full text-left p-2.5 bg-slate-950/60 hover:bg-slate-800 border border-slate-800/80 rounded-lg transition cursor-pointer group"
-                >
-                  <div className="font-semibold text-xs text-slate-200 group-hover:text-emerald-400">
-                    Iron Ridge Pass
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-                    Narrow mountain pass with entrenched defensive artillery.
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => onLoadPreset('empty')}
-                  className="w-full text-left p-2.5 bg-slate-950/60 hover:bg-slate-800 border border-slate-800/80 rounded-lg transition cursor-pointer group"
-                >
-                  <div className="font-semibold text-xs text-slate-200 group-hover:text-emerald-400">
-                    Blank 15x15 Hex Canvas
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    Clear axial grid ready for custom painting.
-                  </div>
-                </button>
+            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+              <div className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                <Map className="w-4 h-4 text-emerald-400" />
+                <span>Sector & Campaign Info</span>
               </div>
-            </div>
 
-            {/* Map Title / Details Editing */}
-            <div className="pt-2 border-t border-slate-800/80 space-y-3">
               <div>
                 <label className="text-xs font-medium text-slate-400 block mb-1">Map Title</label>
                 <input
                   type="text"
                   value={mapState.title}
-                  onChange={(e) => setMapState((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                  onChange={(e) =>
+                    setMapState((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                      gameName: e.target.value,
+                    }))
+                  }
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-400 block mb-1">Game Master</label>
+                <input
+                  type="text"
+                  value={mapState.ownerName || 'Game Master'}
+                  onChange={(e) =>
+                    setMapState((prev) => ({
+                      ...prev,
+                      ownerName: e.target.value,
+                    }))
+                  }
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-medium text-slate-400 block mb-1">Description / Briefing</label>
                 <textarea
-                  rows={2}
+                  rows={4}
                   value={mapState.description || ''}
                   onChange={(e) => setMapState((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 resize-none"
+                  placeholder="Enter scenario briefing, objectives, or sector notes..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 resize-none"
                 />
               </div>
             </div>
@@ -692,14 +597,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <label className="text-xs font-medium text-slate-400 uppercase tracking-wider block">
                 Terrain Painter
               </label>
-              <button
-                onClick={onClearAllTerrain}
-                className="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
-                title="Reset all painted terrain back to clear"
-              >
-                <Trash2 className="w-3 h-3" />
-                Clear Map
-              </button>
             </div>
 
             {/* Custom Terrain Toggle Button */}

@@ -16,14 +16,19 @@ import {
   Check,
   Lock,
   Unlock,
+  BookOpen,
+  MousePointer,
+  Paintbrush,
+  Ruler,
+  UserPlus,
+  Hand,
+  Info,
+  HelpCircle,
 } from 'lucide-react';
 import { WargameMapState, SupabaseMapRecord, Orientation } from '../types';
 import { PRESET_MAPS } from '../data/presets';
 import {
   fetchAllMaps,
-  getStoredSupabaseCredentials,
-  saveSupabaseCredentials,
-  resetSupabaseClient,
   isSupabaseConfigured,
 } from '../lib/supabaseClient';
 
@@ -51,7 +56,7 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
   savedMaps,
   refreshMapsList,
 }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'browse' | 'scenarios'>('browse');
+  const [activeTab, setActiveTab] = useState<'guide' | 'browse' | 'create' | 'scenarios'>('guide');
 
   // New Map Form State
   const [newTitle, setNewTitle] = useState('New Wargame Sector');
@@ -63,33 +68,15 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
 
   // Search & Filter State for Browse Tab
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMapRecord, setSelectedMapRecord] = useState<SupabaseMapRecord | null>(null);
 
-  // Supabase Settings State
-  const [showDbSettings, setShowDbSettings] = useState(false);
-  const [dbUrl, setDbUrl] = useState('');
-  const [dbKey, setDbKey] = useState('');
-  const [dbConnected, setDbConnected] = useState(isSupabaseConfigured());
+  const dbConnected = isSupabaseConfigured();
 
-  // Sync maps and credentials on modal open
+  // Sync maps on modal open
   useEffect(() => {
     if (isOpen) {
-      const creds = getStoredSupabaseCredentials();
-      setDbUrl(creds.url);
-      setDbKey(creds.key);
-      setDbConnected(isSupabaseConfigured());
       refreshMapsList();
     }
   }, [isOpen, refreshMapsList]);
-
-  const handleSaveCredentials = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveSupabaseCredentials({ url: dbUrl.trim(), key: dbKey.trim() });
-    resetSupabaseClient();
-    setDbConnected(isSupabaseConfigured());
-    refreshMapsList();
-    setShowDbSettings(false);
-  };
 
   if (!isOpen) return null;
 
@@ -146,10 +133,22 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-slate-950/80 border-b border-slate-800/80 px-5 flex items-center gap-2">
+        <div className="bg-slate-950/80 border-b border-slate-800/80 px-5 flex items-center gap-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('guide')}
+            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer shrink-0 ${
+              activeTab === 'guide'
+                ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <span>Getting Started</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('browse')}
-            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer shrink-0 ${
               activeTab === 'browse'
                 ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -164,7 +163,7 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
 
           <button
             onClick={() => setActiveTab('create')}
-            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer shrink-0 ${
               activeTab === 'create'
                 ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -176,7 +175,7 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
 
           <button
             onClick={() => setActiveTab('scenarios')}
-            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+            className={`px-4 py-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer shrink-0 ${
               activeTab === 'scenarios'
                 ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -189,6 +188,101 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
 
         {/* Modal Body Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* TAB 0: GETTING STARTED GUIDE */}
+          {activeTab === 'guide' && (
+            <div className="space-y-6 max-w-3xl mx-auto">
+              <div className="p-5 bg-emerald-950/40 border border-emerald-800/60 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-900/60 rounded-lg text-emerald-400">
+                    <Swords className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Welcome to Hex Grid Virtual Tabletop</h3>
+                    <p className="text-xs text-emerald-300/80">
+                      Tactical wargaming, campaign planning, and battlemap simulation.
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Hex VTT allows Game Masters and commanders to build interactive tactical battle maps, place military unit tokens, paint custom terrain, measure firing distances, and track turns across sessions.
+                </p>
+              </div>
+
+              {/* Password Safety Notice */}
+              <div className="p-4 bg-amber-950/50 border border-amber-800/80 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                  <Shield className="w-4 h-4 text-amber-400" />
+                  <span>Important GM Password Safety Notice</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Make sure to keep your GM access password safe — only <strong>Masyor</strong> can retrieve it if you forget it!
+                </p>
+              </div>
+
+              {/* How to Use / Controls Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    <MousePointer className="w-4 h-4 text-emerald-400" />
+                    <span>Unit Movement & Stacking</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Use the <strong>Select Tool (V)</strong> to click and drag units across hexes. When multiple units occupy the same hex, clicking the stack opens an inspector to select or move individual tokens.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    <Paintbrush className="w-4 h-4 text-emerald-400" />
+                    <span>Terrain Painter</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Use the <strong>Paint Tool (B)</strong> to apply terrain like Woods, Hills, Rivers, Fortifications, or custom colored emojis directly onto hexes. Use Eraser (E) to clear painted tiles.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    <Ruler className="w-4 h-4 text-emerald-400" />
+                    <span>Distance Measurement</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Use the <strong>Measure Tool (M)</strong> to click and drag across hexes to measure range in axial hex steps and yards/meters instantly.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
+                    <UserPlus className="w-4 h-4 text-emerald-400" />
+                    <span>Spawning & Editing Units</span>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Use the <strong>Spawn Tool (U)</strong> to drop new unit counters onto any hex, or manage complete unit stats and faction colors from the sidebar panel.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Start Buttons */}
+              <div className="pt-2 flex flex-wrap items-center justify-end gap-3">
+                <button
+                  onClick={() => setActiveTab('browse')}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-2"
+                >
+                  <Search className="w-4 h-4 text-emerald-400" />
+                  <span>Browse Saved Maps</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('create')}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Map</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: BROWSE & SEARCH MAPS */}
           {activeTab === 'browse' && (
             <div className="space-y-4">
@@ -215,83 +309,10 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
                         : 'bg-amber-950 text-amber-300 border border-amber-800'
                     }`}
                   >
-                    {dbConnected ? 'Supabase Connected' : 'Not Connected'}
+                    {dbConnected ? 'Connected' : 'Offline'}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowDbSettings(!showDbSettings)}
-                    className="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition cursor-pointer"
-                    title="Configure Supabase Connection"
-                  >
-                    Settings
-                  </button>
                 </div>
               </div>
-
-              {/* DB Credentials Form (if toggled or if not connected) */}
-              {(showDbSettings || !dbConnected) && (
-                <form
-                  onSubmit={handleSaveCredentials}
-                  className="p-4 bg-slate-950 rounded-xl border border-amber-800/80 space-y-3 animate-in fade-in"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
-                      <Database className="w-4 h-4 text-amber-400" />
-                      <span>Supabase Database Credentials</span>
-                    </div>
-                    {dbConnected && (
-                      <button
-                        type="button"
-                        onClick={() => setShowDbSettings(false)}
-                        className="text-xs text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        Hide
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    {!dbConnected
-                      ? 'No active Supabase connection detected on this browser. Enter your Supabase credentials below to sync campaign maps across devices.'
-                      : 'You are currently connected. You can update your Supabase URL or Anon Key below if needed.'}
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-300 block mb-1">Project URL</label>
-                      <input
-                        type="url"
-                        required
-                        value={dbUrl}
-                        onChange={(e) => setDbUrl(e.target.value)}
-                        placeholder="https://your-project.supabase.co"
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-300 block mb-1">Anon / Public Key</label>
-                      <input
-                        type="text"
-                        required
-                        value={dbKey}
-                        onChange={(e) => setDbKey(e.target.value)}
-                        placeholder="eyJhbGciOiJIUzI1Ni..."
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition cursor-pointer shadow"
-                    >
-                      Save & Connect Database
-                    </button>
-                  </div>
-                </form>
-              )}
 
               {/* Map Grid */}
               {filteredMaps.length === 0 ? (
@@ -431,8 +452,9 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
                     />
                     <Key className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    You automatically remain unlocked on this device as the creator. Other users need this password for GM edits.
+                  <p className="text-[10px] text-amber-400/90 mt-1.5 flex items-center gap-1 font-medium">
+                    <Shield className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span>Important: Keep your password safe — only Masyor can retrieve it if you forget it!</span>
                   </p>
                 </div>
               </div>
@@ -543,3 +565,4 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
     </div>
   );
 };
+

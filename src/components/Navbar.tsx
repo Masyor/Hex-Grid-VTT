@@ -85,10 +85,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="hidden md:inline font-semibold">Main Menu</span>
         </button>
 
-        <div className="p-2 bg-emerald-950/80 border border-emerald-800/60 rounded-lg text-emerald-400 font-bold text-sm tracking-wider flex items-center gap-1.5 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          HEX VTT
-        </div>
         <div className="hidden sm:block">
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-semibold text-slate-100 max-w-[180px] truncate">{mapTitle}</h1>
