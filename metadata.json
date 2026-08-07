@@ -1,0 +1,6 @@
+{
+  "name": "Hex Grid VTT - Play-by-Post Wargame Mapper",
+  "description": "Tactical pointy-topped hex grid mapping tool for play-by-post wargames with terrain painting, unit tokens, Supabase cloud state persistence, and high-res PNG export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
