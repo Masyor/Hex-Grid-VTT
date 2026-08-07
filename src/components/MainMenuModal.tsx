@@ -19,7 +19,13 @@ import {
 } from 'lucide-react';
 import { WargameMapState, SupabaseMapRecord, Orientation } from '../types';
 import { PRESET_MAPS } from '../data/presets';
-import { fetchAllMaps } from '../lib/supabaseClient';
+import {
+  fetchAllMaps,
+  getStoredSupabaseCredentials,
+  saveSupabaseCredentials,
+  resetSupabaseClient,
+  isSupabaseConfigured,
+} from '../lib/supabaseClient';
 
 interface MainMenuModalProps {
   isOpen: boolean;
@@ -59,12 +65,31 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMapRecord, setSelectedMapRecord] = useState<SupabaseMapRecord | null>(null);
 
-  // Sync maps on modal open
+  // Supabase Settings State
+  const [showDbSettings, setShowDbSettings] = useState(false);
+  const [dbUrl, setDbUrl] = useState('');
+  const [dbKey, setDbKey] = useState('');
+  const [dbConnected, setDbConnected] = useState(isSupabaseConfigured());
+
+  // Sync maps and credentials on modal open
   useEffect(() => {
     if (isOpen) {
+      const creds = getStoredSupabaseCredentials();
+      setDbUrl(creds.url);
+      setDbKey(creds.key);
+      setDbConnected(isSupabaseConfigured());
       refreshMapsList();
     }
   }, [isOpen, refreshMapsList]);
+
+  const handleSaveCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveSupabaseCredentials({ url: dbUrl.trim(), key: dbKey.trim() });
+    resetSupabaseClient();
+    setDbConnected(isSupabaseConfigured());
+    refreshMapsList();
+    setShowDbSettings(false);
+  };
 
   if (!isOpen) return null;
 
@@ -183,11 +208,90 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
                 <div className="flex items-center gap-2 text-xs text-slate-400 shrink-0">
                   <Database className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Cloud Database:</span>
-                  <span className="font-semibold px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">
-                    Supabase Connected
+                  <span
+                    className={`font-semibold px-2 py-0.5 rounded text-[10px] ${
+                      dbConnected
+                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                        : 'bg-amber-950 text-amber-300 border border-amber-800'
+                    }`}
+                  >
+                    {dbConnected ? 'Supabase Connected' : 'Not Connected'}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowDbSettings(!showDbSettings)}
+                    className="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition cursor-pointer"
+                    title="Configure Supabase Connection"
+                  >
+                    Settings
+                  </button>
                 </div>
               </div>
+
+              {/* DB Credentials Form (if toggled or if not connected) */}
+              {(showDbSettings || !dbConnected) && (
+                <form
+                  onSubmit={handleSaveCredentials}
+                  className="p-4 bg-slate-950 rounded-xl border border-amber-800/80 space-y-3 animate-in fade-in"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-amber-400" />
+                      <span>Supabase Database Credentials</span>
+                    </div>
+                    {dbConnected && (
+                      <button
+                        type="button"
+                        onClick={() => setShowDbSettings(false)}
+                        className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        Hide
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {!dbConnected
+                      ? 'No active Supabase connection detected on this browser. Enter your Supabase credentials below to sync campaign maps across devices.'
+                      : 'You are currently connected. You can update your Supabase URL or Anon Key below if needed.'}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-300 block mb-1">Project URL</label>
+                      <input
+                        type="url"
+                        required
+                        value={dbUrl}
+                        onChange={(e) => setDbUrl(e.target.value)}
+                        placeholder="https://your-project.supabase.co"
+                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-300 block mb-1">Anon / Public Key</label>
+                      <input
+                        type="text"
+                        required
+                        value={dbKey}
+                        onChange={(e) => setDbKey(e.target.value)}
+                        placeholder="eyJhbGciOiJIUzI1Ni..."
+                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition cursor-pointer shadow"
+                    >
+                      Save & Connect Database
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Map Grid */}
               {filteredMaps.length === 0 ? (

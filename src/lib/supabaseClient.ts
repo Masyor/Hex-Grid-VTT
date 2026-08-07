@@ -48,6 +48,11 @@ export function getSupabaseClient(): SupabaseClient | null {
   return supabaseInstance;
 }
 
+export function isSupabaseConfigured(): boolean {
+  const { url, key } = getStoredSupabaseCredentials();
+  return !!(url && key && !url.includes('YOUR_SUPABASE') && !key.includes('YOUR_KEY'));
+}
+
 export function resetSupabaseClient() {
   supabaseInstance = null;
 }
