@@ -18,7 +18,6 @@ import { Sidebar } from './components/Sidebar';
 import { HexCanvas } from './components/HexCanvas';
 import { StackModal } from './components/StackModal';
 import { ExportModal } from './components/ExportModal';
-import { SupabaseSetupModal } from './components/SupabaseSetupModal';
 import { UnitEditModal } from './components/UnitEditModal';
 import { GmPasscodeModal } from './components/GmPasscodeModal';
 import { MainMenuModal } from './components/MainMenuModal';
@@ -63,8 +62,7 @@ function registerSessionUnlockedMap(mapId: string) {
 export default function App() {
   const [mapState, setMapState] = useState<WargameMapState>(PRESET_MAPS.crossroads);
   const [savedMaps, setSavedMaps] = useState<SupabaseMapRecord[]>([]);
-  const [currentMapId, setCurrentMapId] = useState<string | null>('local_crossroads');
-  const [supabaseSource, setSupabaseSource] = useState<'supabase' | 'local'>('local');
+  const [currentMapId, setCurrentMapId] = useState<string | null>('preset_crossroads');
 
   // Active Tool & Canvas State
   const [toolMode, setToolMode] = useState<ToolMode>('select');
@@ -97,7 +95,6 @@ export default function App() {
   // Modals & Popovers
   const [mainMenuModalOpen, setMainMenuModalOpen] = useState(true); // Open Main Menu on initial load
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [supabaseModalOpen, setSupabaseModalOpen] = useState(false);
   const [stackModalOpen, setStackModalOpen] = useState(false);
   const [stackUnits, setStackUnits] = useState<Unit[]>([]);
   const [stackCoord, setStackCoord] = useState<AxialCoord | null>(null);
@@ -121,7 +118,6 @@ export default function App() {
   const refreshMapsList = useCallback(async () => {
     const res = await fetchAllMaps();
     setSavedMaps(res.maps);
-    setSupabaseSource(res.source);
   }, []);
 
   useEffect(() => {
@@ -363,9 +359,7 @@ export default function App() {
         onResetView={handleResetView}
         onSaveMap={handleSaveMap}
         onOpenExport={() => setExportModalOpen(true)}
-        onOpenSupabaseModal={() => setSupabaseModalOpen(true)}
         onOpenMainMenu={() => setMainMenuModalOpen(true)}
-        supabaseSource={supabaseSource}
         isSaving={isSaving}
         saveSuccessToast={saveSuccessToast}
         onQuickCopyPNG={handleQuickCopyPNG}
@@ -405,8 +399,6 @@ export default function App() {
           }}
           onOpenUnitEditModal={() => setUnitEditModalOpen(true)}
           onDeleteUnit={handleDeleteUnit}
-          onOpenSupabaseModal={() => setSupabaseModalOpen(true)}
-          supabaseSource={supabaseSource}
           onClearAllTerrain={handleClearAllTerrain}
         />
 
@@ -447,7 +439,6 @@ export default function App() {
         onNewCustomMap={handleNewCustomMap}
         savedMaps={savedMaps}
         refreshMapsList={refreshMapsList}
-        supabaseSource={supabaseSource}
       />
 
       {/* 1. Stack Inspector Modal */}
@@ -479,14 +470,7 @@ export default function App() {
         mapState={mapState}
       />
 
-      {/* 4. Supabase Setup Modal */}
-      <SupabaseSetupModal
-        isOpen={supabaseModalOpen}
-        onClose={() => setSupabaseModalOpen(false)}
-        onRefreshMaps={refreshMapsList}
-      />
-
-      {/* 5. GM Passcode Modal */}
+      {/* 4. GM Passcode Modal */}
       <GmPasscodeModal
         isOpen={gmPasscodeModalOpen}
         onClose={() => setGmPasscodeModalOpen(false)}

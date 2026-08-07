@@ -58,8 +58,6 @@ interface SidebarProps {
   onSelectUnitOnMap: (unit: Unit | null) => void;
   onOpenUnitEditModal?: () => void;
   onDeleteUnit: (id: string) => void;
-  onOpenSupabaseModal: () => void;
-  supabaseSource: 'supabase' | 'local';
   onClearAllTerrain: () => void;
 }
 
@@ -85,8 +83,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectUnitOnMap,
   onOpenUnitEditModal,
   onDeleteUnit,
-  onOpenSupabaseModal,
-  supabaseSource,
   onClearAllTerrain,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -610,21 +606,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div>
               <button
                 onClick={onNewMap}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 cursor-pointer"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>New Map</span>
-              </button>
-
-              <button
-                onClick={onOpenSupabaseModal}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 cursor-pointer"
-              >
-                <Database className="w-3.5 h-3.5 text-amber-400" />
-                <span>Supabase SQL</span>
+                <span>Create New Map</span>
               </button>
             </div>
 

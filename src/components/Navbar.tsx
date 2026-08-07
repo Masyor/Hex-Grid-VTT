@@ -32,9 +32,7 @@ interface NavbarProps {
   onResetView: () => void;
   onSaveMap: () => void;
   onOpenExport: () => void;
-  onOpenSupabaseModal: () => void;
   onOpenMainMenu: () => void;
-  supabaseSource: 'supabase' | 'local';
   isSaving: boolean;
   saveSuccessToast: boolean;
   onQuickCopyPNG: () => void;
@@ -56,9 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onResetView,
   onSaveMap,
   onOpenExport,
-  onOpenSupabaseModal,
   onOpenMainMenu,
-  supabaseSource,
   isSaving,
   saveSuccessToast,
   onQuickCopyPNG,
@@ -111,18 +107,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {!isGmUnlocked ? <Lock className="w-3 h-3 text-rose-400" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
               <span>{!isGmUnlocked ? 'GM Locked' : ownerName ? `GM: ${ownerName}` : 'GM Mode'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <button
-              onClick={onOpenSupabaseModal}
-              className={`flex items-center gap-1 hover:underline cursor-pointer ${
-                supabaseSource === 'supabase' ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'
-              }`}
-            >
-              <Database className="w-3 h-3" />
-              {supabaseSource === 'supabase' ? 'Supabase Connected' : 'Local Storage Mode'}
             </button>
           </div>
         </div>

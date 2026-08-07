@@ -1,9 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { WargameMapState, SupabaseMapRecord } from '../types';
-import { PRESET_MAPS } from '../data/presets';
 
 const STORAGE_CREDENTIALS_KEY = 'vtt_supabase_credentials';
-const LOCAL_MAPS_KEY = 'vtt_local_maps';
 
 export interface SupabaseConfig {
   url: string;
@@ -54,40 +52,7 @@ export function resetSupabaseClient() {
   supabaseInstance = null;
 }
 
-// LocalStorage Fallback Storage Helpers
-function getLocalMaps(): SupabaseMapRecord[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_MAPS_KEY);
-    if (raw) {
-      return JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error('Failed to parse local maps:', e);
-  }
-  // Default fallback initial maps
-  const defaultLocal: SupabaseMapRecord[] = [
-    {
-      id: 'local_crossroads',
-      name: 'Operation Crossroads',
-      updated_at: new Date().toISOString(),
-      state_json: PRESET_MAPS.crossroads,
-    },
-    {
-      id: 'local_pass',
-      name: 'Iron Ridge Pass',
-      updated_at: new Date().toISOString(),
-      state_json: PRESET_MAPS.mountain_pass,
-    },
-  ];
-  localStorage.setItem(LOCAL_MAPS_KEY, JSON.stringify(defaultLocal));
-  return defaultLocal;
-}
-
-function saveLocalMaps(maps: SupabaseMapRecord[]) {
-  localStorage.setItem(LOCAL_MAPS_KEY, JSON.stringify(maps));
-}
-
-export async function fetchAllMaps(): Promise<{ maps: SupabaseMapRecord[]; source: 'supabase' | 'local'; error?: string }> {
+export async function fetchAllMaps(): Promise<{ maps: SupabaseMapRecord[]; source: 'supabase'; error?: string }> {
   const client = getSupabaseClient();
   if (client) {
     try {
@@ -97,24 +62,24 @@ export async function fetchAllMaps(): Promise<{ maps: SupabaseMapRecord[]; sourc
         .order('updated_at', { ascending: false });
 
       if (error) {
-        console.warn('Supabase fetch error, falling back to local storage:', error.message);
-        return { maps: getLocalMaps(), source: 'local', error: error.message };
+        console.warn('Supabase fetch error:', error.message);
+        return { maps: [], source: 'supabase', error: error.message };
       }
-      return { maps: data as SupabaseMapRecord[], source: 'supabase' };
+      return { maps: (data as SupabaseMapRecord[]) || [], source: 'supabase' };
     } catch (err: any) {
       console.warn('Supabase fetch exception:', err);
-      return { maps: getLocalMaps(), source: 'local', error: err.message || 'Connection failed' };
+      return { maps: [], source: 'supabase', error: err.message || 'Connection failed' };
     }
   }
 
-  return { maps: getLocalMaps(), source: 'local' };
+  return { maps: [], source: 'supabase', error: 'Supabase client not initialized' };
 }
 
 export async function saveMapToBackend(
   name: string,
   state: WargameMapState,
   mapId?: string
-): Promise<{ success: boolean; record?: SupabaseMapRecord; source: 'supabase' | 'local'; error?: string }> {
+): Promise<{ success: boolean; record?: SupabaseMapRecord; source: 'supabase'; error?: string }> {
   const client = getSupabaseClient();
   const now = new Date().toISOString();
   const mapStateWithDate = { ...state, title: name, updatedAt: now };
@@ -127,7 +92,7 @@ export async function saveMapToBackend(
         state_json: mapStateWithDate,
       };
 
-      if (mapId && !mapId.startsWith('local_')) {
+      if (mapId && !mapId.startsWith('local_') && !mapId.startsWith('preset_')) {
         payload.id = mapId;
       }
 
@@ -138,61 +103,36 @@ export async function saveMapToBackend(
         .single();
 
       if (error) {
-        console.warn('Supabase save failed, saving locally:', error.message);
-        const localRecord = saveMapLocally(name, mapStateWithDate, mapId);
-        return { success: true, record: localRecord, source: 'local', error: error.message };
+        console.warn('Supabase save failed:', error.message);
+        return { success: false, source: 'supabase', error: error.message };
       }
 
       return { success: true, record: data as SupabaseMapRecord, source: 'supabase' };
     } catch (err: any) {
       console.warn('Supabase save exception:', err);
-      const localRecord = saveMapLocally(name, mapStateWithDate, mapId);
-      return { success: true, record: localRecord, source: 'local', error: err.message };
+      return { success: false, source: 'supabase', error: err.message };
     }
   }
 
-  const localRecord = saveMapLocally(name, mapStateWithDate, mapId);
-  return { success: true, record: localRecord, source: 'local' };
-}
-
-function saveMapLocally(name: string, state: WargameMapState, mapId?: string): SupabaseMapRecord {
-  const maps = getLocalMaps();
-  const id = mapId || `local_${Date.now()}`;
-  const now = new Date().toISOString();
-
-  const existingIdx = maps.findIndex((m) => m.id === id);
-  const newRecord: SupabaseMapRecord = {
-    id,
-    name,
-    updated_at: now,
-    state_json: { ...state, title: name, updatedAt: now },
-  };
-
-  if (existingIdx >= 0) {
-    maps[existingIdx] = newRecord;
-  } else {
-    maps.unshift(newRecord);
-  }
-
-  saveLocalMaps(maps);
-  return newRecord;
+  return { success: false, source: 'supabase', error: 'Supabase client not connected' };
 }
 
 export async function deleteMapFromBackend(mapId: string): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient();
-  if (client && !mapId.startsWith('local_')) {
+  if (client && !mapId.startsWith('preset_')) {
     try {
       const { error } = await client.from('wargame_maps').delete().eq('id', mapId);
       if (error) {
         console.warn('Supabase delete error:', error.message);
+        return { success: false, error: error.message };
       }
-    } catch (e) {
+      return { success: true };
+    } catch (e: any) {
       console.warn('Supabase delete exception:', e);
+      return { success: false, error: e.message };
     }
   }
 
-  // Also remove from local storage if present
-  const maps = getLocalMaps().filter((m) => m.id !== mapId);
-  saveLocalMaps(maps);
   return { success: true };
 }
+

@@ -35,7 +35,6 @@ interface MainMenuModalProps {
   }) => void;
   savedMaps: SupabaseMapRecord[];
   refreshMapsList: () => void;
-  supabaseSource: 'supabase' | 'local';
 }
 
 export const MainMenuModal: React.FC<MainMenuModalProps> = ({
@@ -45,7 +44,6 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
   onNewCustomMap,
   savedMaps,
   refreshMapsList,
-  supabaseSource,
 }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'browse' | 'scenarios'>('browse');
 
@@ -184,13 +182,9 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
 
                 <div className="flex items-center gap-2 text-xs text-slate-400 shrink-0">
                   <Database className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Storage:</span>
-                  <span className={`font-semibold px-2 py-0.5 rounded text-[10px] ${
-                    supabaseSource === 'supabase'
-                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                      : 'bg-amber-950 text-amber-300 border border-amber-800'
-                  }`}>
-                    {supabaseSource === 'supabase' ? 'Supabase Database' : 'Browser LocalStorage'}
+                  <span>Cloud Database:</span>
+                  <span className="font-semibold px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    Supabase Connected
                   </span>
                 </div>
               </div>
