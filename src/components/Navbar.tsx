@@ -17,6 +17,7 @@ import {
   Lock,
   Unlock,
   Menu,
+  PanelLeft,
 } from 'lucide-react';
 import { ToolMode, AxialCoord } from '../types';
 
@@ -40,6 +41,8 @@ interface NavbarProps {
   isGmUnlocked: boolean;
   onToggleGmLock: () => void;
   hasGmPasscode: boolean;
+  onToggleMobileSidebar?: () => void;
+  isMobileSidebarOpen?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -62,6 +65,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   isGmUnlocked,
   onToggleGmLock,
   hasGmPasscode,
+  onToggleMobileSidebar,
+  isMobileSidebarOpen,
 }) => {
   const tools: { id: ToolMode; label: string; icon: React.ReactNode; shortcut: string }[] = [
     { id: 'select', label: 'Select / Move Unit', icon: <MousePointer className="w-4 h-4" />, shortcut: 'V' },
@@ -73,16 +78,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between gap-4 select-none z-20">
+    <header className="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 select-none z-20 overflow-x-auto">
       {/* Title & Storage Indicator */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {onToggleMobileSidebar && (
+          <button
+            onClick={onToggleMobileSidebar}
+            className={`p-2 border rounded-lg md:hidden flex items-center justify-center cursor-pointer transition ${
+              isMobileSidebarOpen
+                ? 'bg-emerald-600 border-emerald-500 text-white'
+                : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+            }`}
+            title="Toggle Sidebar Panel"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        )}
+
         <button
           onClick={onOpenMainMenu}
-          className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold text-xs rounded-lg flex items-center gap-2 cursor-pointer transition shadow-sm hover:border-emerald-500"
+          className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold text-xs rounded-lg flex items-center gap-1.5 cursor-pointer transition shadow-sm hover:border-emerald-500"
           title="Open Main Menu & Map Manager"
         >
           <Menu className="w-4 h-4 text-emerald-400" />
-          <span className="hidden md:inline font-semibold">Main Menu</span>
+          <span className="hidden sm:inline font-semibold">Main Menu</span>
         </button>
 
         <div className="hidden sm:block">

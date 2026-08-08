@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Key, X, AlertCircle } from 'lucide-react';
+import { Lock, Unlock, Key, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface GmPasscodeModalProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ export const GmPasscodeModal: React.FC<GmPasscodeModalProps> = ({
   onSuccess,
 }) => {
   const [pinInput, setPinInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
@@ -75,7 +76,7 @@ export const GmPasscodeModal: React.FC<GmPasscodeModalProps> = ({
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoFocus
                 required
                 value={pinInput}
@@ -86,7 +87,14 @@ export const GmPasscodeModal: React.FC<GmPasscodeModalProps> = ({
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500 pr-10 font-mono tracking-wider"
                 placeholder="Enter GM Password..."
               />
-              <Key className="w-4 h-4 text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer transition"
+                title={showPassword ? 'Hide Password' : 'Show Password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 

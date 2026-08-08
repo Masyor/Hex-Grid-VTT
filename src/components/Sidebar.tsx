@@ -59,6 +59,8 @@ interface SidebarProps {
   onOpenUnitEditModal?: () => void;
   onDeleteUnit: (id: string) => void;
   onClearAllTerrain: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -84,6 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenUnitEditModal,
   onDeleteUnit,
   onClearAllTerrain,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'campaign' | 'map' | 'terrain' | 'units' | 'settings'>('campaign');
@@ -100,6 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [logAuthor, setLogAuthor] = useState('Game Master');
   const [logText, setLogText] = useState('');
   const [codeCopiedToast, setCodeCopiedToast] = useState(false);
+  const [showGmPassword, setShowGmPassword] = useState(false);
 
   // Quick emoji options for custom terrain
   const EMOJI_SWATCHES = ['🌋', '🏰', '☢️', '💥', '⚡', '🚩', '🏆', '🔮', '🌲', '🌊', '⛺', '💣', '💎', '🛡️', '⚔️', '🚨'];
@@ -197,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   if (collapsed) {
     return (
-      <aside className="w-12 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-4 gap-4 z-10 select-none">
+      <aside className="hidden md:flex w-12 bg-slate-900 border-r border-slate-800 flex-col items-center py-4 gap-4 z-10 select-none">
         <button
           onClick={() => setCollapsed(false)}
           className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
@@ -263,61 +268,86 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }
 
   return (
-    <aside className="w-80 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col z-10 select-none overflow-hidden text-slate-200">
-      {/* Sidebar Header & Tab Selectors */}
-      <div className="p-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-        <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px] overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('campaign')}
-            className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
-              activeTab === 'campaign' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Swords className="w-3 h-3" />
-            Game
-          </button>
-          <button
-            onClick={() => setActiveTab('map')}
-            className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
-              activeTab === 'map' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Info
-          </button>
-          <button
-            onClick={() => setActiveTab('terrain')}
-            className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
-              activeTab === 'terrain' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Terrain
-          </button>
-          <button
-            onClick={() => setActiveTab('units')}
-            className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
-              activeTab === 'units' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Units ({mapState.units.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
-              activeTab === 'settings' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Grid
-          </button>
-        </div>
+    <>
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-30 md:hidden animate-in fade-in duration-150"
+        />
+      )}
 
-        <button
-          onClick={() => setCollapsed(true)}
-          className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg cursor-pointer shrink-0 ml-1"
-          title="Collapse Panel"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-      </div>
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-40 w-80 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col select-none overflow-hidden text-slate-200 transition-transform duration-200 ${
+          isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        {/* Sidebar Header & Tab Selectors */}
+        <div className="p-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px] overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('campaign')}
+              className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
+                activeTab === 'campaign' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Swords className="w-3 h-3" />
+              Game
+            </button>
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
+                activeTab === 'map' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Info
+            </button>
+            <button
+              onClick={() => setActiveTab('terrain')}
+              className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
+                activeTab === 'terrain' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Terrain
+            </button>
+            <button
+              onClick={() => setActiveTab('units')}
+              className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
+                activeTab === 'units' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Units ({mapState.units.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all shrink-0 ${
+                activeTab === 'settings' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Grid
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCollapsed(true)}
+              className="hidden md:block p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg cursor-pointer shrink-0 ml-1"
+              title="Collapse Panel"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {onCloseMobile && (
+              <button
+                onClick={onCloseMobile}
+                className="md:hidden p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg cursor-pointer shrink-0 ml-1"
+                title="Close Mobile Drawer"
+              >
+                <XCircle className="w-4 h-4 text-slate-400 hover:text-slate-100" />
+              </button>
+            )}
+          </div>
+        </div>
 
       {/* Tab Contents */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -364,7 +394,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <input
-                      type="password"
+                      type={showGmPassword ? 'text' : 'password'}
                       value={mapState.accessPassword || mapState.gmPasscode || ''}
                       onChange={(e) =>
                         setMapState((prev) => ({
@@ -374,9 +404,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         }))
                       }
                       placeholder="e.g. coGMPass123"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500 pr-8"
                     />
-                    <Key className="w-3 h-3 text-slate-500 absolute right-2.5 top-2 pointer-events-none" />
+                    <button
+                      type="button"
+                      onClick={() => setShowGmPassword(!showGmPassword)}
+                      className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-200 cursor-pointer transition"
+                      title={showGmPassword ? 'Hide Password' : 'Show Password'}
+                    >
+                      {showGmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
 
                   <button
@@ -1081,5 +1118,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
     </aside>
-  );
+  </>
+);
 };

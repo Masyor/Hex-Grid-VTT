@@ -24,6 +24,8 @@ import {
   Hand,
   Info,
   HelpCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { WargameMapState, SupabaseMapRecord, Orientation } from '../types';
 import { PRESET_MAPS } from '../data/presets';
@@ -62,6 +64,7 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
   const [newTitle, setNewTitle] = useState('New Wargame Sector');
   const [newOwner, setNewOwner] = useState('Game Master');
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [newRadius, setNewRadius] = useState<number>(11);
   const [newOrientation, setNewOrientation] = useState<Orientation>('pointy');
   const [newTerrainStyle, setNewTerrainStyle] = useState<string>('clear');
@@ -444,13 +447,20 @@ export const MainMenuModal: React.FC<MainMenuModalProps> = ({
                   </label>
                   <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Optional password to restrict GM edit mode..."
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500 pr-9"
                     />
-                    <Key className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2 text-slate-400 hover:text-slate-200 cursor-pointer transition"
+                      title={showPassword ? 'Hide Password' : 'Show Password'}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                   <p className="text-[10px] text-amber-400/90 mt-1.5 flex items-center gap-1 font-medium">
                     <Shield className="w-3 h-3 text-amber-400 shrink-0" />

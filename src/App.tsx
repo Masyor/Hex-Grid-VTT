@@ -21,6 +21,7 @@ import { ExportModal } from './components/ExportModal';
 import { UnitEditModal } from './components/UnitEditModal';
 import { GmPasscodeModal } from './components/GmPasscodeModal';
 import { MainMenuModal } from './components/MainMenuModal';
+import { UnsavedChangesModal } from './components/UnsavedChangesModal';
 import { copyMapImageToClipboard } from './lib/exportEngine';
 
 // Local Memory Helpers for Creator GM Device Ownership & Session Keys
@@ -63,6 +64,20 @@ export default function App() {
   const [mapState, setMapState] = useState<WargameMapState>(PRESET_MAPS.crossroads);
   const [savedMaps, setSavedMaps] = useState<SupabaseMapRecord[]>([]);
   const [currentMapId, setCurrentMapId] = useState<string | null>('preset_crossroads');
+
+  // Unsaved Changes Guard State
+  const [isDirty, setIsDirty] = useState(false);
+  const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(null);
+
+  // Mobile Drawer State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Wrapped State Setter that flags unsaved changes
+  const updateMapState = useCallback((action: React.SetStateAction<WargameMapState>) => {
+    setMapState(action);
+    setIsDirty(true);
+  }, []);
 
   // Active Tool & Canvas State
   const [toolMode, setToolMode] = useState<ToolMode>('select');
@@ -165,6 +180,29 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Warn on browser tab close or reload when dirty
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = 'There are unsaved changes, are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Guard Navigation when Unsaved Changes exist
+  const confirmDirtyNavigation = (action: () => void) => {
+    if (isDirty) {
+      setPendingNavAction(() => action);
+      setUnsavedModalOpen(true);
+    } else {
+      action();
+    }
+  };
+
   // Save Map Handler
   const handleSaveMap = async () => {
     setIsSaving(true);
@@ -176,6 +214,7 @@ export default function App() {
       registerMyCreatedMap(res.record.id);
       registerSessionUnlockedMap(res.record.id);
       setIsGmUnlocked(true);
+      setIsDirty(false); // Reset dirty flag
       setSaveSuccessToast(true);
       setTimeout(() => setSaveSuccessToast(false), 2500);
       refreshMapsList();
@@ -184,19 +223,25 @@ export default function App() {
 
   // Load Map Record
   const handleSelectMapRecord = (record: SupabaseMapRecord) => {
-    setCurrentMapId(record.id);
-    setMapState(record.state_json);
-    setSelectedUnit(null);
-    setIsGmUnlocked(checkGmAccess(record.state_json, record.id));
+    confirmDirtyNavigation(() => {
+      setCurrentMapId(record.id);
+      setMapState(record.state_json);
+      setIsDirty(false);
+      setSelectedUnit(null);
+      setIsGmUnlocked(checkGmAccess(record.state_json, record.id));
+    });
   };
 
   // Load Map State from Main Menu
   const handleLoadMapStateFromMenu = (newState: WargameMapState, recordId?: string) => {
-    const id = recordId || 'map_' + Date.now();
-    setCurrentMapId(id);
-    setMapState(newState);
-    setSelectedUnit(null);
-    setIsGmUnlocked(checkGmAccess(newState, id));
+    confirmDirtyNavigation(() => {
+      const id = recordId || 'map_' + Date.now();
+      setCurrentMapId(id);
+      setMapState(newState);
+      setIsDirty(false);
+      setSelectedUnit(null);
+      setIsGmUnlocked(checkGmAccess(newState, id));
+    });
   };
 
   // Create New Map Custom Config
@@ -208,57 +253,60 @@ export default function App() {
     orientation: Orientation;
     presetTerrain?: string;
   }) => {
-    const newId = 'map_' + Date.now();
-    const bounds = {
-      minQ: -config.radius,
-      maxQ: config.radius,
-      minR: -config.radius,
-      maxR: config.radius,
-    };
+    confirmDirtyNavigation(() => {
+      const newId = 'map_' + Date.now();
+      const bounds = {
+        minQ: -config.radius,
+        maxQ: config.radius,
+        minR: -config.radius,
+        maxR: config.radius,
+      };
 
-    const newMapState: WargameMapState = {
-      version: '1.0.0',
-      title: config.title,
-      ownerName: config.ownerName,
-      accessPassword: config.accessPassword,
-      gmPasscode: config.accessPassword,
-      currentTurn: 1,
-      turnLogs: [
-        {
-          id: '1',
-          turn: 1,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          author: config.ownerName,
-          text: `Sector initialized by ${config.ownerName}.`,
+      const newMapState: WargameMapState = {
+        version: '1.0.0',
+        title: config.title,
+        ownerName: config.ownerName,
+        accessPassword: config.accessPassword,
+        gmPasscode: config.accessPassword,
+        currentTurn: 1,
+        turnLogs: [
+          {
+            id: '1',
+            turn: 1,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            author: config.ownerName,
+            text: `Sector initialized by ${config.ownerName}.`,
+          },
+        ],
+        gridSettings: {
+          radius: 35,
+          orientation: config.orientation,
+          bounds,
+          showCoordinates: true,
+          gridColor: '#334155',
+          gridLineWidth: 1,
         },
-      ],
-      gridSettings: {
-        radius: 35,
-        orientation: config.orientation,
-        bounds,
-        showCoordinates: true,
-        gridColor: '#334155',
-        gridLineWidth: 1,
-      },
-      terrains: {},
-      units: [],
-    };
+        terrains: {},
+        units: [],
+      };
 
-    registerMyCreatedMap(newId);
-    registerSessionUnlockedMap(newId);
-    setCurrentMapId(newId);
-    setMapState(newMapState);
-    setIsGmUnlocked(true);
-    setSelectedUnit(null);
+      registerMyCreatedMap(newId);
+      registerSessionUnlockedMap(newId);
+      setCurrentMapId(newId);
+      setMapState(newMapState);
+      setIsDirty(false);
+      setIsGmUnlocked(true);
+      setSelectedUnit(null);
 
-    // Save to backend immediately
-    saveMapToBackend(config.title, newMapState, newId).then((res) => {
-      if (res.record) {
-        setCurrentMapId(res.record.id);
-        registerMyCreatedMap(res.record.id);
-        registerSessionUnlockedMap(res.record.id);
-        refreshMapsList();
-      }
+      // Save to backend immediately
+      saveMapToBackend(config.title, newMapState, newId).then((res) => {
+        if (res.record) {
+          setCurrentMapId(res.record.id);
+          registerMyCreatedMap(res.record.id);
+          registerSessionUnlockedMap(res.record.id);
+          refreshMapsList();
+        }
+      });
     });
   };
 
@@ -274,12 +322,15 @@ export default function App() {
 
   // Load Preset Template
   const handleLoadPreset = (presetKey: string) => {
-    const preset = PRESET_MAPS[presetKey] || PRESET_MAPS.empty;
-    const newId = 'preset_' + presetKey;
-    setCurrentMapId(newId);
-    setMapState(preset);
-    setSelectedUnit(null);
-    setIsGmUnlocked(checkGmAccess(preset, newId));
+    confirmDirtyNavigation(() => {
+      const preset = PRESET_MAPS[presetKey] || PRESET_MAPS.empty;
+      const newId = 'preset_' + presetKey;
+      setCurrentMapId(newId);
+      setMapState(preset);
+      setIsDirty(false);
+      setSelectedUnit(null);
+      setIsGmUnlocked(checkGmAccess(preset, newId));
+    });
   };
 
   // Clear all painted terrain
@@ -367,6 +418,8 @@ export default function App() {
         isGmUnlocked={isGmUnlocked}
         onToggleGmLock={handleToggleGmLock}
         hasGmPasscode={!!(mapState.accessPassword || mapState.gmPasscode)}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        isMobileSidebarOpen={isMobileSidebarOpen}
       />
 
       {/* Main App Body */}
@@ -374,7 +427,7 @@ export default function App() {
         {/* Left Sidebar Control Panel */}
         <Sidebar
           mapState={mapState}
-          setMapState={setMapState}
+          setMapState={updateMapState}
           savedMaps={savedMaps}
           currentMapId={currentMapId}
           onSelectMapRecord={handleSelectMapRecord}
@@ -400,12 +453,14 @@ export default function App() {
           onOpenUnitEditModal={() => setUnitEditModalOpen(true)}
           onDeleteUnit={handleDeleteUnit}
           onClearAllTerrain={handleClearAllTerrain}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* Central Interactive HTML5 Hex Canvas Viewport */}
         <HexCanvas
           mapState={mapState}
-          setMapState={setMapState}
+          setMapState={updateMapState}
           toolMode={toolMode}
           selectedTerrain={selectedTerrain}
           customTerrainConfig={customTerrainConfig}
@@ -431,6 +486,33 @@ export default function App() {
       </div>
 
       {/* MODALS */}
+      {/* 0. Unsaved Changes Guard Modal */}
+      <UnsavedChangesModal
+        isOpen={unsavedModalOpen}
+        onClose={() => {
+          setUnsavedModalOpen(false);
+          setPendingNavAction(null);
+        }}
+        onDiscard={() => {
+          setUnsavedModalOpen(false);
+          if (pendingNavAction) {
+            const action = pendingNavAction;
+            setPendingNavAction(null);
+            setIsDirty(false);
+            action();
+          }
+        }}
+        onSaveAndProceed={async () => {
+          setUnsavedModalOpen(false);
+          await handleSaveMap();
+          if (pendingNavAction) {
+            const action = pendingNavAction;
+            setPendingNavAction(null);
+            setIsDirty(false);
+            action();
+          }
+        }}
+      />
       {/* 0. Main Menu & Map Selector Modal */}
       <MainMenuModal
         isOpen={mainMenuModalOpen}

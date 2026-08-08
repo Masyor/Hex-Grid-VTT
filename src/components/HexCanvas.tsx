@@ -66,6 +66,11 @@ export const HexCanvas: React.FC<HexCanvasProps> = ({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [isPainting, setIsPainting] = useState(false);
 
+  // Touch gesture refs
+  const touchPinchDistRef = useRef<number | null>(null);
+  const touchPinchZoomRef = useRef<number>(zoomLevel);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
   // Measurement tool state
   const [measureStart, setMeasureStart] = useState<AxialCoord | null>(null);
 
@@ -85,6 +90,18 @@ export const HexCanvas: React.FC<HexCanvasProps> = ({
       const rect = canvasRef.current.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
+      const world = screenToWorld(mouseX, mouseY);
+      return pixelToHex(world.x, world.y, mapState.gridSettings.radius);
+    },
+    [screenToWorld, mapState.gridSettings.radius]
+  );
+
+  const getAxialFromTouch = useCallback(
+    (touch: React.Touch) => {
+      if (!canvasRef.current) return null;
+      const rect = canvasRef.current.getBoundingClientRect();
+      const mouseX = touch.clientX - rect.left;
+      const mouseY = touch.clientY - rect.top;
       const world = screenToWorld(mouseX, mouseY);
       return pixelToHex(world.x, world.y, mapState.gridSettings.radius);
     },
@@ -597,17 +614,159 @@ export const HexCanvas: React.FC<HexCanvasProps> = ({
     setPanOffset({ x: newPanX, y: newPanY });
   };
 
+  // Touch Start Handler
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2) {
+      // Two fingers -> Pinch Zoom
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      touchPinchDistRef.current = dist;
+      touchPinchZoomRef.current = zoomLevel;
+      setIsPanning(false);
+      setIsPainting(false);
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+      const coord = getAxialFromTouch(touch);
+      if (!coord) return;
+      setHoveredHex(coord);
+
+      if (toolMode === 'pan') {
+        setIsPanning(true);
+        setPanStart({ x: touch.clientX - panOffset.x, y: touch.clientY - panOffset.y });
+      } else if (toolMode === 'paint') {
+        setIsPainting(true);
+        paintTerrainAt(coord, selectedTerrain);
+      } else if (toolMode === 'erase') {
+        setIsPainting(true);
+        paintTerrainAt(coord, null);
+      }
+    }
+  };
+
+  // Touch Move Handler
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2 && touchPinchDistRef.current !== null) {
+      // Handle Pinch Zoom
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      if (touchPinchDistRef.current > 0) {
+        const ratio = currentDist / touchPinchDistRef.current;
+        const newZoom = Math.max(0.3, Math.min(3.5, touchPinchZoomRef.current * ratio));
+        setZoomLevel(newZoom);
+      }
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const coord = getAxialFromTouch(touch);
+      if (coord) {
+        setHoveredHex(coord);
+      }
+
+      if (isPanning) {
+        setPanOffset({
+          x: touch.clientX - panStart.x,
+          y: touch.clientY - panStart.y,
+        });
+        return;
+      }
+
+      if (isPainting && coord) {
+        if (toolMode === 'paint') {
+          paintTerrainAt(coord, selectedTerrain);
+        } else if (toolMode === 'erase') {
+          paintTerrainAt(coord, null);
+        }
+      }
+    }
+  };
+
+  // Touch End Handler
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 0) {
+      // Check if it was a quick tap rather than a drag
+      if (touchStartPosRef.current && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+        const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+
+        // If finger moved less than 8px, handle as a tap click
+        if (dx < 8 && dy < 8) {
+          const coord = getAxialFromTouch(touch);
+          if (coord) {
+            if (toolMode === 'unit_spawn') {
+              if (isGmLocked) {
+                onPromptGmUnlock?.();
+              } else if (pendingSpawnUnit) {
+                const newUnit: Unit = {
+                  ...pendingSpawnUnit,
+                  id: `u_${Date.now()}`,
+                  q: coord.q,
+                  r: coord.r,
+                };
+                setMapState((prev) => ({
+                  ...prev,
+                  units: [...prev.units, newUnit],
+                }));
+                setSelectedUnit(newUnit);
+                setPendingSpawnUnit(null);
+              }
+            } else if (toolMode === 'measure') {
+              if (!measureStart) {
+                setMeasureStart(coord);
+              } else {
+                setMeasureStart(null);
+              }
+            } else if (toolMode === 'select') {
+              const stackAtHex = mapState.units.filter((u) => u.q === coord.q && u.r === coord.r);
+              if (stackAtHex.length > 1) {
+                onOpenStackModal(stackAtHex, coord);
+              } else if (stackAtHex.length === 1) {
+                if (selectedUnit?.id === stackAtHex[0].id) {
+                  setSelectedUnit(null);
+                } else {
+                  setSelectedUnit(stackAtHex[0]);
+                }
+              } else {
+                if (selectedUnit) {
+                  moveUnitToHex(selectedUnit, coord);
+                } else {
+                  setSelectedUnit(null);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      setIsPanning(false);
+      setIsPainting(false);
+      touchPinchDistRef.current = null;
+      touchStartPosRef.current = null;
+    }
+  };
+
   return (
-    <div ref={containerRef} className="relative flex-1 w-full h-full bg-slate-950 overflow-hidden cursor-crosshair select-none">
+    <div ref={containerRef} className="relative flex-1 w-full h-full bg-slate-950 overflow-hidden cursor-crosshair select-none touch-none">
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
-        className="w-full h-full block"
+        className="w-full h-full block touch-none"
       />
 
       {/* Helper Context Hint Footer */}
